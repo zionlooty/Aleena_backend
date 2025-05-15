@@ -1,5 +1,5 @@
 const express=require("express")
-const { NewProduct, updateProduct, getAllProduct, deleteProduct } = require("../controllers/product.controller")
+const { NewProduct, updateProduct, getAllProduct, deleteProduct, singleProduct, Product } = require("../controllers/product.controller")
 const {body, check}= require("express-validator")
 const multer = require("multer")
 const path = require("path")
@@ -10,7 +10,7 @@ const storage = multer.diskStorage({
         cb(null, "uploads/")
     },
     filename:(req, file, cb)=>{
-        cb(null, `${file.originalname}-${Date.now()}${path.extname(file.originalname)}` )
+        cb(null, `${Date.now()}${path.extname(file.originalname)}`)
     }
 })
 
@@ -26,9 +26,9 @@ userRouter.post("/new/product",
         body("product_description").optional().isString().withMessage("optional"),
         body("product_quantity").isEmpty().withMessage("must be at least 1"),
         body("discount_percentage").optional().isNumeric().withMessage("Discount must be numeric"),
-        body("discount_type").optional().isIn(["black friday","promo"]).withMessage("discount type must be `black friday` or `promo`"),
-        body("product_category").notEmpty().isIn(["jewelries", "clothes"]).withMessage("product category must be of one: jewelries, clothes"),
-        body("product_tag").optional().isIn(["ring", "necklace", "bracelet","earing"]).withMessage("product tag must be one of:ring, necklace, bracelet, earing")
+        body("discount_type").optional().isIn(["black friday","promo"]).withMessage("discount type must be one of: black friday or promo"),
+        body("product_category").isIn("jewelries").withMessage("Product category must be one of:jewelries, clothes"),
+       body("product_tag").optional().isIn(["ring", "necklace", "bracelet","earing"]).withMessage("product tag must be one of:ring, necklace, bracelet, earing")
     ], upload.single("product_image") , NewProduct)
 
 
@@ -42,9 +42,15 @@ userRouter.patch("/update/product/:product_id",
     ], updateProduct)
 
 
-userRouter.get("/all/product", getAllProduct)
+userRouter.get("/products", getAllProduct)
+
+
+userRouter.get("/product/:product_id", singleProduct)
+
 
 
 userRouter.delete("/product/:product_id", deleteProduct)
+
+userRouter.get("/product_category/:product_category", Product) 
 
 module.exports = userRouter

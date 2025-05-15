@@ -4,6 +4,8 @@ const { validationResult } = require("express-validator")
 
 module.exports.addtoCart = (req, res) => {
     const { product_id, product_price, product_quantity } = req.body
+
+    const {id} = req.user
     const errorResponse = validationResult(req)
 
     try {
@@ -11,11 +13,23 @@ module.exports.addtoCart = (req, res) => {
             res.status(400).json({
                 error:errorResponse.array()})
         } else {
-            DB.query("INSERT INTO carts(product_id, product_price, product_quantity) VALUES (?,?,?)", [product_id, product_price, product_quantity], (e, _) => {
-                if (e) {
-                    res.status(500).json({ message: "unable to add items to cart" })
-                } else {
-                    res.status(201).json({ message: "item added to cart successfully" })
+            DB.query("SELECT * FROM carts WHERE product_id = ? AND user_id = ?",
+                [product_id, id],
+                (er, product)=>{
+                if(er){
+                    res.status(500).json({message: "fail to add to cart"})
+                }else{
+                    if(product.length > 0){
+                        res.status(400).json({message: "product already in cart"})
+                    }else{
+                        DB.query("INSERT INTO carts(product_id, product_price, product_quantity, user_id) VALUES (?,?,?,?)", [product_id, product_price, product_quantity, id], (e, _) => {
+                            if (e) {
+                                res.status(500).json({ message: "unable to add items to cart" })
+                            } else {
+                                res.status(201).json({ message: "item added to cart" })
+                            }
+                        })
+                    }
                 }
             })
         }
@@ -23,8 +37,6 @@ module.exports.addtoCart = (req, res) => {
         res.status(500).json({ message: error.message ?? "something went wrong" })
     }
 }
-
-
 
 
 module.exports.getAllcart = (req, res) => {
@@ -108,4 +120,24 @@ module.exports.deleteCart = (req, res) => {
         } catch (error) {
            res.status(500).json({message: error.message || "something went wrong"}) 
         }
+}
+
+
+module.exports.getCart =(req, res)=>{
+    const {id}=req.user
+    try {
+        DB.query("SELECT * FROM carts WHERE user_id =?", [id], (e, cart)=>{
+            if(e){
+                res.status(500).json({message: "Error Adding to cart"})
+            }else{
+                if(cart.length > 0){
+                    res.status(200).json({message: cart})
+                }else {
+                    res.status(400).json({ message: " cart not found" })
+                }
+            }
+        })
+    } catch (error) {
+        res.status(500).json({ message: error.message ?? "something went wrong" })
+    }
 }

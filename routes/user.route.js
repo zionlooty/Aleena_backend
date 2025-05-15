@@ -1,6 +1,7 @@
 const express = require("express")
-const { createUser, loginUser, updateUser } = require("../controllers/user.controller")
+const { createUser, loginUser, updateUser, getUser } = require("../controllers/user.controller")
 const {body}= require("express-validator")
+const { verifyUser } = require("../middlewares/auth")
 
 const userRouter = express.Router()
 
@@ -29,5 +30,5 @@ userRouter.patch("/user/:user_id",
         body("email").isEmail().withMessage("invalid email")
     ],updateUser)
 
-
+userRouter.get("/user", verifyUser, getUser)
 module.exports = userRouter

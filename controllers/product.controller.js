@@ -8,38 +8,67 @@ const { validationResult } = require("express-validator")
 
 
 module.exports.NewProduct = (req, res) => {
-    const { product_name, product_price, product_description, product_quantity,discount_percentage,discount_type,product_image,product_category,product_tag } = req.body
-    
-    const fileUrl = req.file
+    const { product_name, product_price, product_description, product_quantity, discount_percentage, discount_type, product_category, product_tag } = req.body
 
-    // console.log({ product_name, product_price, product_description, product_quantity, fileUrl, discount_percentage,discount_type,product_image,product_category,product_tag})
+    const fileUrl = req.file.filename
+
+
 
 
 
     const errorResponse = validationResult(req)
 
-
     try {
         if (!validationResult(req).isEmpty()) {
-            console.log(errorResponse.errors)
-            res.status(400).json({message:errorResponse.errors[0].msg})
+            // console.log(errorResponse.errors,{product_category})
+            res.status(400).json({ message: errorResponse.errors[0].msg })
         } else {
-            DB.query("INSERT INTO products(product_name, product_price, product_description, product_quantity, discount_percentage,discount_type,product_image,product_category,product_tag) VALUES (?,?,?,?,?,?,?,?,?)", [product_name, product_price, product_description, product_quantity,discount_percentage,discount_type,product_image,product_category,product_tag], (e, _) => {
-                if (e) {
-                    res.status(500).json({ message: "unable to add new product" })
+            DB.query("SELECT * FROM products WHERE product_name =?", [product_name], (er, product) => {
+                if (er) {
+                    res.status(500).json({ message: "error fetching product" })
                 } else {
-                    res.status(201).json({ message: "new product successfully" })
+                    if (product.length > 0) {
+                        res.status(400).json({ message: "product name already existed" })
+                    }else{
+                        DB.query("INSERT INTO products(product_name, product_price, product_description, product_quantity, discount_percentage,discount_type, product_image,product_category,product_tag) VALUES(?,?,?,?,?,?,?,?,?)", [product_name, product_price, product_description, product_quantity, discount_percentage, discount_type, fileUrl, product_category, product_tag], (e, _) => {
+                            if (e) {
+                                console.log(e)
+                                res.status(500).json({ message: "unable to add new product" })
+                            } else {
+                                res.status(201).json({ message: "new product successfully" })
+                            }
+                        })
+                    }
                 }
             })
+          
         }
     } catch (error) {
-        // console.log(error)
+        console.log(error)
         res.status(500).json({ message: error.message || "something went wrong" })
     }
 }
-
-
-
+ module.exports.singleProduct= (req, res) =>{
+    const { product_id } = req.params
+    try {
+        if (!product_id) {
+            return res.status(400).json({ message: "Product ID is required" })
+        }
+        DB.query("SELECT * FROM products WHERE product_id =?", [product_id], (e, product)=>{
+            if(e){
+                res.status(500).json({message: "error fetching product"})
+            }else{
+                if(product.length > 0){
+                    res.status(200).json({message: product[0]})
+                }else{
+                    res.status(404).json({message: "product not found"})
+                }
+            }
+        })
+    } catch (error) {
+        res.status(500).json({message: error.message || "something went wrong"})
+    }
+ }
 
 module.exports.updateProduct = (req, res) => {
     const { product_id } = req.params
@@ -49,7 +78,7 @@ module.exports.updateProduct = (req, res) => {
 
     try {
         if (!validationResult(req).isEmpty()) {
-          return  res.status(400).json({
+            return res.status(400).json({
                 error: errorResponse.array()
             })
         }
@@ -63,7 +92,7 @@ module.exports.updateProduct = (req, res) => {
                 }
 
                 if (product.affectedRows === 0) {
-                     res.status(404).json({ message: "Product not found" })
+                    res.status(404).json({ message: "Product not found" })
                 }
 
                 res.status(200).json({ message: "Product successfully updated" })
@@ -76,7 +105,7 @@ module.exports.updateProduct = (req, res) => {
 
 
 module.exports.getAllProduct = (req, res) => {
-
+            
     try {
         DB.query("SELECT * FROM products", (e, products) => {
             if (e) {
@@ -128,3 +157,26 @@ module.exports.deleteProduct = (req, res) => {
         res.status(500).json({ message: error.message || "Something went wrong" })
     }
 }
+
+
+module.exports.Product= (req, res) =>{
+    const { product_category } = req.params
+    try {
+        if (!product_category) {
+            return res.status(400).json({ message: "product_category is required" })
+        }
+        DB.query("SELECT * FROM products WHERE product_category =?", [product_category], (e, product)=>{
+            if(e){
+                res.status(500).json({message: "error fetching product"})
+            }else{
+                if(product.length > 0){
+                    res.status(200).json({message: product})
+                }else{
+                    res.status(404).json({message: "product not found"})
+                }
+            }
+        })
+    } catch (error) {
+        res.status(500).json({message: error.message || "something went wrong"})
+    }
+ }
