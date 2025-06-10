@@ -75,15 +75,16 @@ module.exports.loginUser = (req, res) => {
 
 module.exports.updateUser = (req, res) => {
     const { user_id } = req.params
-    const { fullname, mobile, email } = req.body
+    const { fullname, mobile, email, address } = req.body
     const errorResponse = validationResult(req)
     try {
 
         if (!errorResponse.isEmpty()) {
             return res.status(400).json({ errors: errorResponse.array() })
         } else {
-            DB.query('UPDATE users SET fullname = ?, mobile = ?, email = ? WHERE user_id = ?', [fullname, mobile, email, user_id], (e, _) => {
+            DB.query('UPDATE users SET fullname = ?, mobile = ?, email = ?, address = ? WHERE user_id = ?', [fullname, mobile, email, address, user_id, ], (e, _) => {
                 if (e) {
+                    console.log(e)
                     res.status(500).json({ message: "can't update" })
                 } else {
                     res.status(200).json({ message: "Your profile has been updated" })
@@ -115,5 +116,60 @@ module.exports.getUser = (req, res) => {
         })
     } catch (error) {
         res.status(500).json({ message: error.message ?? "something went wrong" })
+    }
+}
+
+
+
+module.exports.getAllUsers = (req, res) => {
+    try {
+      DB.query("SELECT * FROM users", (err, users) => {
+        if (err) {
+          return res.status(500).json({ message: "Unable to fetch users" });
+        }
+  
+        if (users.length > 0) {
+          return res.status(200).json({ users });
+        } else {
+          return res.status(404).json({ message: "No users found" });
+        }
+      });
+    } catch (error) {
+      return res.status(500).json({ message: error.message ?? "Something went wrong" });
+    }
+  };
+
+  
+  module.exports.deleteUser = (req, res) => {
+    const { user_id } = req.params
+
+    try {
+        if (!user_id) {
+            return res.status(400).json({ message: "user ID is required" })
+        }
+
+
+        DB.query("SELECT * FROM users WHERE user_id = ?", [user_id], (er, users) => {
+            if (er) {
+                return res.status(500).json({ message: "Error checking user" })
+            } else {
+
+                if (users.length === 0) {
+                    return res.status(404).json({ message: "user not found" })
+                }
+            }
+
+
+
+            DB.query("DELETE FROM users WHERE user_id = ?", [user_id], (e, _) => {
+                if (e) {
+                    return res.status(500).json({ message: "Unable to delete user" })
+                }
+
+                res.status(200).json({ message: "user deleted successfully" })
+            })
+        })
+    } catch (error) {
+        res.status(500).json({ message: error.message || "Something went wrong" })
     }
 }
