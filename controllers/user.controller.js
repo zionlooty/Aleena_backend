@@ -123,21 +123,55 @@ module.exports.getUser = (req, res) => {
 
 module.exports.getAllUsers = (req, res) => {
     try {
-      DB.query("SELECT * FROM users", (err, users) => {
+      DB.query("SELECT user_id, fullname, email, mobile, createdAt FROM users ORDER BY createdAt DESC", (err, users) => {
         if (err) {
+          console.error("Error fetching users:", err);
           return res.status(500).json({ message: "Unable to fetch users" });
         }
-  
-        if (users.length > 0) {
-          return res.status(200).json({ users });
-        } else {
-          return res.status(404).json({ message: "No users found" });
-        }
+
+        return res.status(200).json({ message: users });
       });
     } catch (error) {
+      console.error("Unexpected error in getAllUsers:", error);
       return res.status(500).json({ message: error.message ?? "Something went wrong" });
     }
   };
+
+// Delete user
+module.exports.deleteUser = (req, res) => {
+    const { user_id } = req.params;
+
+    try {
+        if (!user_id) {
+            return res.status(400).json({ message: "User ID is required" });
+        }
+
+        // First check if user exists
+        DB.query("SELECT user_id FROM users WHERE user_id = ?", [user_id], (checkErr, user) => {
+            if (checkErr) {
+                console.error("Error checking user:", checkErr);
+                return res.status(500).json({ message: "Error checking user" });
+            }
+
+            if (user.length === 0) {
+                return res.status(404).json({ message: "User not found" });
+            }
+
+            // Delete user
+            DB.query("DELETE FROM users WHERE user_id = ?", [user_id], (deleteErr, result) => {
+                if (deleteErr) {
+                    console.error("Error deleting user:", deleteErr);
+                    return res.status(500).json({ message: "Unable to delete user" });
+                }
+
+                return res.status(200).json({ message: "User deleted successfully" });
+            });
+        });
+    } catch (error) {
+        console.error("Unexpected error in deleteUser:", error);
+        return res.status(500).json({ message: error.message ?? "Something went wrong" });
+    }
+};
 
   
   module.exports.deleteUser = (req, res) => {

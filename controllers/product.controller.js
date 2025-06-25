@@ -8,6 +8,8 @@ const { validationResult } = require("express-validator")
 
 
 module.exports.NewProduct = (req, res) => {
+
+
     const { product_name, product_price, product_description, product_quantity, discount_percentage, discount_type, product_category, product_tag } = req.body
 
     const fileUrl = req.file.filename
@@ -180,3 +182,39 @@ module.exports.Product= (req, res) =>{
         res.status(500).json({message: error.message || "something went wrong"})
     }
  }
+
+// Get product options (categories, tags, discount types)
+module.exports.getProductOptions = (req, res) => {
+    try {
+        const options = {
+            categories: [
+                { value: "rings", label: "Rings" },
+                { value: "necklaces", label: "Necklaces" },
+                { value: "earrings", label: "Earrings" },
+                { value: "bracelets", label: "Bracelets" },
+                { value: "watches", label: "Watches" },
+                { value: "chains", label: "Chains" },
+                { value: "pendants", label: "Pendants" }
+            ],
+            tags: [
+                { value: "new-arrival", label: "New Arrival" },
+                { value: "best-seller", label: "Best Seller" },
+                { value: "limited-edition", label: "Limited Edition" },
+                { value: "sale", label: "Sale" },
+                { value: "premium", label: "Premium" },
+                { value: "handcrafted", label: "Handcrafted" }
+            ],
+            discountTypes: [
+                { value: "promo", label: "Promotional" },
+                { value: "seasonal", label: "Seasonal" },
+                { value: "clearance", label: "Clearance" },
+                { value: "black-friday", label: "Black Friday" }
+            ]
+        };
+
+        res.status(200).json({ message: options });
+    } catch (error) {
+        console.error("Error fetching product options:", error);
+        res.status(500).json({ message: error.message || "Something went wrong" });
+    }
+}
