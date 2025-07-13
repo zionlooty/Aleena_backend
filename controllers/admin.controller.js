@@ -6,39 +6,50 @@ require("dotenv").config()
 
 // Create admin user
 module.exports.createAdmin = (req, res) => {
-    
-    const { fullname, mobile, email, password, role = 'admin' } = req.body
+    console.log("🔧 Creating admin with data:", req.body)
+
+    const { fullname, mobile, email, password, role = 'admin', status = 'active' } = req.body
     const errorResponse = validationResult(req)
-    
+
     try {
         if (!validationResult(req).isEmpty()) {
-            res.status(400).json({
+            console.error("❌ Validation errors:", errorResponse.errors)
+            return res.status(400).json({
                 message: errorResponse.errors[0].msg
             })
-        } else {
-            DB.query("SELECT * FROM admins WHERE email = ? OR mobile = ?", [email, mobile], (e, admin) => {
-                if (e) {
-                    res.status(500).json({ message: "Error fetching admin" })
-                } else {
-                    if (admin.length > 0) {
-                        res.status(400).json({ message: "Mobile NO. or email already exist" })
-                    } else {
-                        const encryptedPassword = bcrypt.hashSync(password, 10)
-                        DB.query("INSERT INTO admins(fullname, mobile, email, password, role, status, created_at) VALUES(?,?,?,?,?,?,?)", 
-                        [fullname, mobile, email, encryptedPassword, role, 'active', new Date()], (er, _) => {
-                            if (er) {
-                                console.log(er)
-                                res.status(500).json({ message: "Unable to add admin" })
-                            } else {
-                                res.status(200).json({ message: "Admin created successfully" })
-                            }
-                        })
-                    }
-                }
-            })
         }
+
+        DB.query("SELECT * FROM admins WHERE email = ? OR mobile = ?", [email, mobile], (e, admin) => {
+            if (e) {
+                console.error("❌ Database error checking existing admin:", e)
+                return res.status(500).json({ message: "Error checking existing admin" })
+            }
+
+            if (admin.length > 0) {
+                console.log("⚠️ Admin already exists with email or mobile")
+                return res.status(400).json({ message: "Mobile number or email already exists" })
+            }
+
+            const encryptedPassword = bcrypt.hashSync(password, 10)
+            console.log("🔐 Password encrypted, inserting admin...")
+
+            DB.query("INSERT INTO admins(fullname, mobile, email, password, role, status, created_at) VALUES(?,?,?,?,?,?,?)",
+            [fullname, mobile, email, encryptedPassword, role, status, new Date()], (er, result) => {
+                if (er) {
+                    console.error("❌ Error inserting admin:", er)
+                    return res.status(500).json({ message: "Unable to create admin" })
+                }
+
+                console.log("✅ Admin created successfully with ID:", result.insertId)
+                return res.status(201).json({
+                    message: "Admin created successfully",
+                    admin_id: result.insertId
+                })
+            })
+        })
     } catch (error) {
-        res.status(500).json({ message: error.message || "Something went wrong" })
+        console.error("❌ Unexpected error in createAdmin:", error)
+        return res.status(500).json({ message: error.message || "Something went wrong" })
     }
 }
 
